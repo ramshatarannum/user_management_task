@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Management System</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    form {
+      margin-bottom: 20px;
+    }
+
+    label {
+      font-weight: bold;
+    }
+
+    .user-list {
+      list-style-type: none;
+      padding: 0;
+    }
+
+    .user-list li {
+      background: #f9f9f9;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+    }
+
+    .filter-input {
+      margin-bottom: 10px;
+    }
+
+    .btn {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .btn:hover {
+      background-color: #45a049;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>User Management System</h1>
+
+    <!-- Form to add new user -->
+    <form id="add-user-form" class="form-group">
+      <h2>Add New User</h2>
+      <div>
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" required>
+      </div>
+      <div>
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
+      </div>
+      <div>
+        <label for="campaigns">Campaigns List (JSON format):</label>
+        <input type="text" id="campaigns" name="campaigns" placeholder='[{"campaign_name": "cam1", "campaign_id": "id1"}]' required>
+      </div>
+      <button type="submit" class="btn">Add User</button>
+    </form>
+
+    <!-- Form to filter users -->
+    <form id="filter-users-form" class="form-group">
+      <h2>Filter Users by Campaign Names</h2>
+      <div>
+        <label for="campaignNames">Campaign Names (comma-separated):</label>
+        <input type="text" id="campaignNames" name="campaignNames" class="filter-input" required>
+      </div>
+      <button type="submit" class="btn">Filter Users</button>
+    </form>
+
+    <!-- Section to display list of users -->
+    <div id="users-list">
+      <h2>List of Users</h2>
+      <ul class="user-list" id="user-list-ul">
+        <!-- User items will be added dynamically via JavaScript -->
+      </ul>
+    </div>
+  </div>
+
+  <!-- JavaScript to interact with API endpoints -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Fetch and display all users on page load
+      fetchUsers();
+
+      // Form submission to add a new user
+      document.getElementById('add-user-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        const userData = {
+          name: formData.get('name'),
+          email: formData.get('email'),
+          campaigns_list: JSON.parse(formData.get('campaigns'))
+        };
+
+        fetch('/users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(userData),
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to add user');
+          }
+          alert('User added successfully!');
+          fetchUsers(); // Refresh user list
+          document.getElementById('add-user-form').reset(); // Reset form
+        })
+        .catch(error => console.error('Error adding user:', error));
+      });
+
+      // Form submission to filter users
+      document.getElementById('filter-users-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const campaignNames = document.getElementById('campaignNames').value.split(',').map(name => name.trim());
+        
+        // Construct URL with query parameters
+        const queryParams = new URLSearchParams();
+        campaignNames.forEach(name => queryParams.append('campaign_names[]', name));
+        const url = '/users/filter?' + queryParams.toString();
+        
+        // Fetch users based on filters
+        fetch(url)
+          .then(response => response.json())
+          .then(users => {
+            const usersList = document.getElementById('user-list-ul');
+             usersList.innerHTML = ''; // Clear previous content
+            users.forEach(user => {
+              const li = document.createElement('li');
+              li.textContent = `${user.name} - ${user.email}`;
+              usersList.appendChild(li);
+            });
+          })
+          .catch(error => console.error('Error filtering users:', error));
+      });
+
+      // Function to fetch all users
+      function fetchUsers() {
+        fetch('/users')
+          .then(response => response.json())
+          .then(users => {
+            const usersList = document.getElementById('user-list-ul');
+            usersList.innerHTML = ''; // Clear previous content
+            users.forEach(user => {
+              const li = document.createElement('li');
+              li.textContent = `${user.name} - ${user.email}`;
+              usersList.appendChild(li);
+            });
+          })
+          .catch(error => console.error('Error fetching users:', error));
+      }
+    });
+  </script>
+</body>
+</html>
